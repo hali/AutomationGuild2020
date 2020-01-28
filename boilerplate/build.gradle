@@ -1,0 +1,60 @@
+buildscript {
+    dependencies {
+        classpath "io.qameta.allure:allure-gradle:2.5"
+    }
+}
+plugins {
+  id 'groovy'
+}
+apply plugin: 'io.qameta.allure'
+
+allure {
+    autoconfigure = true
+    version = '2.4.1'
+	clean = true
+}
+defaultTasks 'all'
+
+dependencies {
+  compile 'junit:junit:4.12'
+  compile 'com.codeborne:selenide:4.14.2'
+  compile('org.seleniumhq.selenium:htmlunit-driver:2.33.0')
+  compile('org.seleniumhq.selenium:selenium-chrome-driver:2.47.1')
+  compile('com.codeborne:phantomjsdriver:1.4.4') { transitive = false }
+  compile('org.spockframework:spock-core:1.0-groovy-2.4') 
+  compile('com.github.javafaker:javafaker:0.16')
+}
+
+task libs(type: Sync) {
+  from configurations.testCompile
+  into "$buildDir/lib"
+}
+
+classes.dependsOn libs
+
+tasks.withType(Test).all { 
+
+    testTask ->
+      testTask.systemProperties = [
+        'file.encoding': 'UTF-8',
+        'BUILD_URL': System.getenv()['BUILD_URL']
+      ]
+      testTask.testLogging.showStandardStreams = true
+      testTask.outputs.upToDateWhen { false }
+}
+
+task all(type: Test) {    
+	systemProperties['webdriver.chrome.driver'] = 'D:\\webdriver\\chromedriver.exe'
+    systemProperties['selenide.browser'] = 'chrome'
+    systemProperties['selenide.headless'] = 'true'
+	systemProperties['selenide.browserSize']='1920x1080'
+}
+
+task smoke(type: Test) {
+    systemProperty 'spock.configuration', '.\\src\\test\\groovy\\utils\\smokeSpockConfig.groovy'
+	systemProperties['webdriver.chrome.driver'] = 'D:\\webdriver\\chromedriver.exe'
+    systemProperties['selenide.browser'] = 'chrome'
+    systemProperties['selenide.headless'] = 'true'
+	systemProperties['selenide.browserSize']='1920x1080'
+
+}

@@ -1,0 +1,29 @@
+properties([
+	parameters ([
+        choice(choices: ['all', 'smoke'], description: 'Which tests to run?', name: 'task')
+    ]),
+	pipelineTriggers([
+      cron('H 17 * * *')
+    ])
+])
+
+node() {
+	stage('Checkout tests from bitbucket') {
+		checkout scm
+	}
+
+    stage('Run tests') {
+        catchError {
+			bat 'gradle clean'
+            bat 'gradle %task%'
+        }
+    }	
+	stage('Publish Test Results') {
+		publishHTML reportDir: 'build/reports/tests/${task}/',
+              reportFiles: 'index.html', 
+              reportTitles: 'Spock Test Results for ${task}',
+              reportName: 'Spock Test Results', 
+              keepAll: true, alwaysLinkToLastBuild: true, allowMissing: false
+		allure([includeProperties: false, jdk: '', properties: [], reportBuildPolicy: 'ALWAYS', results: [[path: 'build/allure-results']]])
+	}
+}
